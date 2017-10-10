@@ -7,12 +7,13 @@ import io.kaeawc.photocrop.R
 import io.kaeawc.photocrop.db.Photo
 
 open class PhotoAdapter(open val data: List<Photo>) : RecyclerView.Adapter<PhotoViewHolder>() {
-    override fun getItemCount(): Int = 50
+    override fun getItemCount(): Int = data.size
 
     override fun onBindViewHolder(holder: PhotoViewHolder?, position: Int) {
         if (holder !is PhotoViewHolder) return
         if (data.isEmpty()) return
-        holder.onBind(data[position % data.size])
+        if (position >= data.size) return
+        holder.onBind(data[position])
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoViewHolder {

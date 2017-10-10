@@ -5,10 +5,10 @@ open class PhotoRepository {
     open fun getPhotos(): List<Photo> = (0..9).map {
         step ->
         val position = step * 3
-        val smallSize = 300 + 100 * step
-        val largeSize = smallSize + 100
+        val smallSize = 300 + (100 * step)
+        val largeSize = smallSize + (100 * (1 + step))
 
-        return listOf(Photo(
+        listOf(Photo(
                 url = "http://via.placeholder.com/${smallSize}x$smallSize",
                 width = smallSize,
                 height = smallSize,

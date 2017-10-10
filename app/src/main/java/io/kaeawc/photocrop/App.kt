@@ -12,6 +12,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
+        Timber.i("Started app")
         AppComponent.init(this).inject(this)
         GlideProvider.registerComponents(this, okhttp)
     }
