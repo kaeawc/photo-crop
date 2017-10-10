@@ -44,6 +44,9 @@ class MainActivity : AppCompatActivity(), MainPresenter.View, PhotoViewHolder.Ph
     override fun onPhotoTapped(photo: Photo) {
         Timber.i("onPhotoTapped $photo")
         val intent = Intent(baseContext, CropActivity::class.java)
+        intent.putExtra(CropActivity.URL, photo.url)
+        intent.putExtra(CropActivity.WIDTH, photo.width)
+        intent.putExtra(CropActivity.HEIGHT, photo.height)
         intent.putExtra(CropActivity.POSITION, photo.position)
         startActivity(intent)
     }

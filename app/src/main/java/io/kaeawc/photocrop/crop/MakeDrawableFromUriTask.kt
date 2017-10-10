@@ -8,7 +8,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.media.ExifInterface
+import android.support.media.ExifInterface
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
@@ -17,12 +17,15 @@ import timber.log.Timber
 
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.lang.ref.WeakReference
 
-open class MakeDrawableTask(
-        val context: Context,
+open class MakeDrawableFromUriTask(
+        context: Context,
         val uri: Uri,
         val targetWidth: Int,
         val targetHeight: Int) : AsyncTask<Void, Void, Drawable>() {
+
+    var context: WeakReference<Context>? = WeakReference(context)
 
     protected var rawWidth: Int = 0
         private set
@@ -34,6 +37,7 @@ open class MakeDrawableTask(
         options.inSampleSize = 1
 
         options.inJustDecodeBounds = true
+        val context = context?.get() ?: return null
 
         try {
             BitmapFactory.decodeStream(context.contentResolver.openInputStream(uri), null, options)
@@ -85,7 +89,7 @@ open class MakeDrawableTask(
 
     companion object {
 
-        fun getBitmap(context: Context, uri: Uri, options: BitmapFactory.Options): Bitmap? {
+        @JvmStatic fun getBitmap(context: Context, uri: Uri, options: BitmapFactory.Options): Bitmap? {
             var bitmap: Bitmap? = null
 
             while (true) {
@@ -158,7 +162,7 @@ open class MakeDrawableTask(
 
         }
 
-        fun resizeBitmap(bitmap: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
+        @JvmStatic fun resizeBitmap(bitmap: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
             val resizedBitmap = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
 
             val scaleX = newWidth / bitmap.width.toFloat()

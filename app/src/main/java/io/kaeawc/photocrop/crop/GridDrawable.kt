@@ -7,12 +7,10 @@ import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.drawable.Drawable
-import android.os.Handler
 import android.view.animation.LinearInterpolator
 
 class GridDrawable : Drawable() {
 
-    private val handler = Handler()
     private val linePaint = Paint()
     private val lineBorderPaint = Paint()
     private val animator = ValueAnimator()

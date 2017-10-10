@@ -2,14 +2,10 @@ package io.kaeawc.photocrop.crop
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.support.constraint.ConstraintLayout
-import android.support.constraint.ConstraintSet
-import android.widget.ImageView
 import io.kaeawc.photocrop.GlideApp
 import io.kaeawc.photocrop.R
 import io.kaeawc.photocrop.db.Photo
 import kotlinx.android.synthetic.main.activity_crop.*
-import timber.log.Timber
 
 class CropActivity : AppCompatActivity(), CropPresenter.View {
 
@@ -55,19 +51,19 @@ class CropActivity : AppCompatActivity(), CropPresenter.View {
 
     override fun showPhoto(photo: Photo) {
         if (isFinishing) return
-        val photoView: ImageView = photo_view ?: return
-        GlideApp.with(this).load(photo.url).into(photoView)
-        val resources = baseContext.resources ?: return Timber.e("Cannot load resources")
-        val parent = photoView.parent as? ConstraintLayout ?: return Timber.e("Cannot load parent")
-        val constraints = ConstraintSet()
-        constraints.constrainWidth(R.id.photo_view, ConstraintLayout.LayoutParams.MATCH_CONSTRAINT)
-        constraints.constrainHeight(R.id.photo_view, ConstraintLayout.LayoutParams.MATCH_CONSTRAINT)
-        constraints.setDimensionRatio(R.id.photo_view, (photo.width / photo.height.toFloat()).toString())
-        val topMargin = resources.getDimension(R.dimen.photo_list_margin).toInt()
-        constraints.connect(R.id.photo_view, ConstraintSet.TOP, R.id.photo_constraint, ConstraintSet.TOP, topMargin)
-        constraints.connect(R.id.photo_view, ConstraintSet.LEFT, R.id.photo_constraint, ConstraintSet.LEFT, 0)
-        constraints.connect(R.id.photo_view, ConstraintSet.RIGHT, R.id.photo_constraint, ConstraintSet.RIGHT, 0)
-        constraints.applyTo(parent)
+        val cropView: CropView = photo_view ?: return
+        GlideApp.with(this).load(photo.url).into(cropView)
+//        val resources = baseContext.resources ?: return Timber.e("Cannot load resources")
+//        val parent = photoView.parent as? ConstraintLayout ?: return Timber.e("Cannot load parent")
+//        val constraints = ConstraintSet()
+//        constraints.constrainWidth(R.id.photo_view, ConstraintLayout.LayoutParams.MATCH_CONSTRAINT)
+//        constraints.constrainHeight(R.id.photo_view, ConstraintLayout.LayoutParams.MATCH_CONSTRAINT)
+//        constraints.setDimensionRatio(R.id.photo_view, (photo.width / photo.height.toFloat()).toString())
+//        val topMargin = resources.getDimension(R.dimen.photo_list_margin).toInt()
+//        constraints.connect(R.id.photo_view, ConstraintSet.TOP, R.id.photo_constraint, ConstraintSet.TOP, topMargin)
+//        constraints.connect(R.id.photo_view, ConstraintSet.LEFT, R.id.photo_constraint, ConstraintSet.LEFT, 0)
+//        constraints.connect(R.id.photo_view, ConstraintSet.RIGHT, R.id.photo_constraint, ConstraintSet.RIGHT, 0)
+//        constraints.applyTo(parent)
     }
 
     override fun showPlaceholder() {
