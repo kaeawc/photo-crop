@@ -7,17 +7,26 @@ import io.kaeawc.photocrop.db.Photo
 
 class CropActivity : AppCompatActivity(), CropPresenter.View {
 
+    companion object {
+        const val POSITION = "position"
+    }
+
     private val presenter = CropPresenter()
+    var position = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crop)
+        position = intent.getIntExtra(POSITION, -1)
         presenter.onCreate(this)
     }
 
     override fun onResume() {
         super.onResume()
-        presenter.onResume()
+        when {
+            position >= 0 -> presenter.onResume(position)
+            else -> finish()
+        }
     }
 
     override fun onPause() {

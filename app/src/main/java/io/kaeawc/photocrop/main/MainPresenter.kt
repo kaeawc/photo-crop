@@ -1,12 +1,13 @@
 package io.kaeawc.photocrop.main
 
 import io.kaeawc.photocrop.db.Photo
+import io.kaeawc.photocrop.db.PhotoRepository
 import java.lang.ref.WeakReference
 
 open class MainPresenter {
 
     open var weakView: WeakReference<View>? = null
-    open val interactor = MainInteractor()
+    open val interactor = PhotoRepository()
 
     open fun onCreate(view: View) {
         weakView = WeakReference(view)
