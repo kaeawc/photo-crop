@@ -11,6 +11,7 @@ open class PhotoAdapter(open val data: List<Photo>) : RecyclerView.Adapter<Photo
 
     override fun onBindViewHolder(holder: PhotoViewHolder?, position: Int) {
         if (holder !is PhotoViewHolder) return
+        if (data.isEmpty()) return
         holder.onBind(data[position % data.size])
     }
 
