@@ -1,5 +1,7 @@
 package io.kaeawc.photocrop
 
-class MainInteractor {
+open class MainInteractor {
+
+    open fun getPhotos(): List<Photo> = emptyList()
 
 }

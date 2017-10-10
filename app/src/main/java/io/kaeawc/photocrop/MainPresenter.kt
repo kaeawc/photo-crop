@@ -2,23 +2,25 @@ package io.kaeawc.photocrop
 
 import java.lang.ref.WeakReference
 
-class MainPresenter {
+open class MainPresenter {
 
     var weakView: WeakReference<View>? = null
 
-    fun onCreate(view: View) {
+    val interactor = MainInteractor()
+
+    open fun onCreate(view: View) {
         weakView = WeakReference(view)
     }
 
-    fun onResume() {
-
+    open fun onResume() {
+        weakView?.get()?.showPhotos(interactor.getPhotos())
     }
 
-    fun onPause() {
+    open fun onPause() {
         weakView?.clear()
     }
 
-    fun onStop() {
+    open fun onStop() {
         weakView = null
     }
 

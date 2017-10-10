@@ -35,7 +35,7 @@ class MainPresenterSpec {
         val presenter = MainPresenter()
         presenter.onCreate(view)
         presenter.onResume()
-        verify(view, times(1)).showTitle(any())
+        verify(view, times(1)).showPhotos(any())
     }
 
     @Test
