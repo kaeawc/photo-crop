@@ -17,8 +17,9 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.animation.DecelerateInterpolator
+import android.widget.ImageView
 
-class CropView : View {
+class CropView : ImageView {
 
     private var minimumRatio = DEFAULT_MINIMUM_RATIO
     private var maximumRatio = DEFAULT_MAXIMUM_RATIO

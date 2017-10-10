@@ -10,13 +10,16 @@ open class CropPresenter {
 
     open val interactor = PhotoRepository()
 
-    open fun onCreate(view: View) {
+    open var currentPhoto: Photo? = null
+
+    open fun onCreate(view: View, url: String, width: Int, height: Int, position: Int) {
         weakView = WeakReference(view)
+        currentPhoto = Photo(url, width, height, position)
     }
 
-    open fun onResume(position: Int) {
+    open fun onResume() {
         val view = weakView?.get() ?: return
-        val photo = interactor.getPhoto(position)
+        val photo = currentPhoto
         when (photo) {
             null -> view.showPlaceholder()
             else -> view.showPhoto(photo)

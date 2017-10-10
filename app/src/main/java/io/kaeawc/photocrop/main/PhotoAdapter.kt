@@ -6,14 +6,14 @@ import android.view.ViewGroup
 import io.kaeawc.photocrop.R
 import io.kaeawc.photocrop.db.Photo
 
-open class PhotoAdapter(open val data: List<Photo>) : RecyclerView.Adapter<PhotoViewHolder>() {
+open class PhotoAdapter(open val data: List<Photo>, open val view: PhotoViewHolder.PhotoView) : RecyclerView.Adapter<PhotoViewHolder>() {
     override fun getItemCount(): Int = data.size
 
     override fun onBindViewHolder(holder: PhotoViewHolder?, position: Int) {
         if (holder !is PhotoViewHolder) return
         if (data.isEmpty()) return
         if (position >= data.size) return
-        holder.onBind(data[position])
+        holder.onBind(data[position], view)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoViewHolder {

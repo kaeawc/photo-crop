@@ -2,14 +2,15 @@
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/photo_constraint"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="io.kaeawc.photocrop.crop.CropActivity"
     >
 
     <io.kaeawc.photocrop.crop.CropView
-        android:id="@+id/photo"
+        android:id="@+id/photo_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintDimensionRatio="1"

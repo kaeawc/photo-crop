@@ -8,16 +8,19 @@ import android.widget.ImageView
 import io.kaeawc.photocrop.GlideApp
 import io.kaeawc.photocrop.R
 import io.kaeawc.photocrop.db.Photo
+import java.lang.ref.WeakReference
 
 open class PhotoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
     private val imageView: ImageView? = itemView.findViewById(R.id.photo)
+    private var weakView: WeakReference<PhotoView>? = null
 
     init {
         imageView?.let { GlideApp.with(itemView).clear(it) }
     }
 
-    open fun onBind(photo: Photo) {
+    open fun onBind(photo: Photo, view: PhotoView) {
+        weakView = WeakReference(view)
         val photoView = imageView ?: return
         GlideApp.with(itemView).load(photo.url).into(photoView)
         val parent = photoView.parent as? ConstraintLayout ?: return
@@ -30,5 +33,13 @@ open class PhotoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         constraints.connect(R.id.photo, ConstraintSet.LEFT, R.id.photo_constraint, ConstraintSet.LEFT, 0)
         constraints.connect(R.id.photo, ConstraintSet.RIGHT, R.id.photo_constraint, ConstraintSet.RIGHT, 0)
         constraints.applyTo(parent)
+
+        photoView.setOnClickListener {
+            weakView?.get()?.onPhotoTapped(photo)
+        }
+    }
+
+    interface PhotoView {
+        fun onPhotoTapped(photo: Photo)
     }
 }

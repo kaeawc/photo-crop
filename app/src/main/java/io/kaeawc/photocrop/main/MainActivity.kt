@@ -1,13 +1,16 @@
 package io.kaeawc.photocrop.main
 
+import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import io.kaeawc.photocrop.R
+import io.kaeawc.photocrop.crop.CropActivity
 import io.kaeawc.photocrop.db.Photo
 import kotlinx.android.synthetic.main.activity_main.*
+import timber.log.Timber
 
-class MainActivity : AppCompatActivity(), MainPresenter.View {
+class MainActivity : AppCompatActivity(), MainPresenter.View, PhotoViewHolder.PhotoView {
 
     private val presenter = MainPresenter()
 
@@ -35,6 +38,13 @@ class MainActivity : AppCompatActivity(), MainPresenter.View {
     override fun showPhotos(photos: List<Photo>) {
         if (isFinishing) return
         photo_list.layoutManager = LinearLayoutManager(baseContext, LinearLayoutManager.VERTICAL, false)
-        photo_list.adapter = PhotoAdapter(photos)
+        photo_list.adapter = PhotoAdapter(photos, this)
+    }
+
+    override fun onPhotoTapped(photo: Photo) {
+        Timber.i("onPhotoTapped $photo")
+        val intent = Intent(baseContext, CropActivity::class.java)
+        intent.putExtra(CropActivity.POSITION, photo.position)
+        startActivity(intent)
     }
 }
