@@ -7,7 +7,7 @@ import io.kaeawc.photocrop.GlideApp
 import io.kaeawc.photocrop.R
 import io.kaeawc.photocrop.db.Photo
 
-class PhotoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+open class PhotoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
     private val imageView: ImageView? = itemView.findViewById(R.id.photo)
 
@@ -15,7 +15,7 @@ class PhotoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         imageView?.let { GlideApp.with(itemView).clear(it) }
     }
 
-    fun onBind(photo: Photo) {
+    open fun onBind(photo: Photo) {
         imageView?.let { GlideApp.with(itemView).load(photo.url).into(it) }
     }
 }
