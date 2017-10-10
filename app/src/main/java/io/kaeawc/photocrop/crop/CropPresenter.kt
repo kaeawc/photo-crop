@@ -1,7 +1,6 @@
 package io.kaeawc.photocrop.crop
 
 import io.kaeawc.photocrop.db.Photo
-import io.kaeawc.photocrop.main.MainInteractor
 import java.lang.ref.WeakReference
 
 open class CropPresenter {
@@ -15,7 +14,12 @@ open class CropPresenter {
     }
 
     open fun onResume() {
-        weakView?.get()?.showPhoto(interactor.getPhoto())
+        val view = weakView?.get() ?: return
+        val photo = interactor.getPhoto()
+        when (photo) {
+            null -> view.showPlaceholder()
+            else -> view.showPhoto(photo)
+        }
     }
 
     open fun onPause() {
@@ -27,6 +31,7 @@ open class CropPresenter {
     }
 
     interface View {
-        fun showPhoto(photo: Photo?)
+        fun showPhoto(photo: Photo)
+        fun showPlaceholder()
     }
 }
