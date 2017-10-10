@@ -1,0 +1,35 @@
+defaults: &defaults
+  working_directory: ~/code
+  docker:
+    - image: circleci/android:api-26-alpha
+  environment:
+    TERM: dumb
+    TEST_FLAGS: "--no-daemon -PdisablePreDex"
+    _JAVA_OPTIONS: "-Xmx3200m -XX:ParallelGCThreads=2 -XX:ConcGCThreads=2 -XX:ParallelGCThreads=2 -Djava.util.concurrent.ForkJoinPool.common.parallelism=2"
+
+version: 2
+jobs:
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          key: gradle-{{ checksum "build.gradle" }}
+      - run:
+          name: Android SDK Licenses
+          command: ci/android_sdk_licenses.sh
+      - run:
+          name: Dependencies
+          command: ./gradlew --no-daemon --stacktrace dependencies
+      - run:
+          name: Unit Tests
+          command: ./gradlew -q app:testDebugUnitTest $TEST_FLAGS
+      - store_test_results:
+          path: "app/build/test-results/testDebugUnitTest"
+      - run:
+          name: Send coverage reports to CodeCov
+          command: bash <(curl -s https://codecov.io/bash) -X gcov -X coveragepy
+      - save_cache:
+          key: gradle-{{ checksum "build.gradle" }}
+          paths:
+            - ~/.gradle
