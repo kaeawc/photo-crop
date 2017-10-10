@@ -1,4 +1,4 @@
-package io.kaeawc.photocrop
+package io.kaeawc.photocrop.main
 
 import com.nhaarman.mockito_kotlin.*
 import org.junit.Test
@@ -8,11 +8,6 @@ import org.junit.Before
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
 class MainPresenterSpec {
 
     @Mock lateinit var view: MainPresenter.View

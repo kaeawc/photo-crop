@@ -1,4 +1,6 @@
-package io.kaeawc.photocrop
+package io.kaeawc.photocrop.main
+
+import io.kaeawc.photocrop.db.Photo
 
 open class MainInteractor {
 
