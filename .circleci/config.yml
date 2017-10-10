@@ -26,9 +26,6 @@ jobs:
           command: ./gradlew -q app:testDebugUnitTest $TEST_FLAGS
       - store_test_results:
           path: "app/build/test-results/testDebugUnitTest"
-      - run:
-          name: Send coverage reports to CodeCov
-          command: bash <(curl -s https://codecov.io/bash) -X gcov -X coveragepy
       - save_cache:
           key: gradle-{{ checksum "build.gradle" }}
           paths:
