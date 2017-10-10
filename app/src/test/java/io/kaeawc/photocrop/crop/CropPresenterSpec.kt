@@ -39,6 +39,16 @@ class CropPresenterSpec {
         presenter.onCreate(view)
         presenter.onResume()
         verify(view, times(1)).showPhoto(eq(photo))
+        verify(view, never()).showPlaceholder()
+    }
+
+    @Test
+    fun `show placeholder on resume`() {
+        whenever(interactor.getPhoto()).thenReturn(null)
+        presenter.onCreate(view)
+        presenter.onResume()
+        verify(view, times(1)).showPlaceholder()
+        verify(view, never()).showPhoto(any())
     }
 
     @Test
