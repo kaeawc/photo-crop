@@ -1,11 +1,23 @@
 package io.kaeawc.photocrop.crop
 
+import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import timber.log.Timber
 
 object BitmapExtensions {
 
-    fun Bitmap.cropAndResize(left: Int, top: Int, right: Int, bottom: Int, width: Int, height: Int): Bitmap? {
+    fun Bitmap.toDrawable(context: Context): Drawable = BitmapDrawable(context.resources, this)
+
+    fun Bitmap.cropAndResize(
+            left: Int,
+            top: Int,
+            right: Int,
+            bottom: Int,
+            width: Int,
+            height: Int): Bitmap? {
+
         val options = BitmapFactory.Options()
         options.inSampleSize = 1
 
@@ -23,62 +35,55 @@ object BitmapExtensions {
             options.inSampleSize /= 2
         }
 
-        try {
-            val sampledLeft = left / options.inSampleSize
-            val sampledTop = top / options.inSampleSize
-            val sampledRight = right / options.inSampleSize
-            val sampledBottom = bottom / options.inSampleSize
-            val croppedWidth = sampledRight - sampledLeft
-            val croppedHeight = sampledBottom - sampledTop
-            val croppedBitmap = crop(sampledLeft, sampledTop, croppedWidth, croppedHeight)
-            if (croppedWidth <= width && croppedHeight <= height) {
-                return croppedBitmap
-            }
+        val sampledLeft = left / options.inSampleSize
+        val sampledTop = top / options.inSampleSize
+        val sampledRight = right / options.inSampleSize
+        val sampledBottom = bottom / options.inSampleSize
+        val croppedWidth = sampledRight - sampledLeft
+        val croppedHeight = sampledBottom - sampledTop
 
-            val resizedBitmap = this.resize(width, height)
-            croppedBitmap?.recycle()
+        Timber.i("rawArea: $rawArea")
+        Timber.i("targetArea: $targetArea")
+        Timber.i("resultArea: $resultArea")
+        Timber.i("options.inSampleSize: ${options.inSampleSize}")
 
-            return resizedBitmap
-        } catch (t: Throwable) {
-            return null
+
+        Timber.i("sampledLeft: $sampledLeft")
+        Timber.i("sampledTop: $sampledTop")
+        Timber.i("sampledRight: $sampledRight")
+        Timber.i("sampledBottom: $sampledBottom")
+        Timber.i("croppedWidth: $croppedWidth")
+        Timber.i("croppedHeight: $croppedHeight")
+
+        val croppedBitmap = Bitmap.createBitmap(this, sampledLeft, sampledTop, croppedWidth, croppedHeight)
+        if (croppedWidth <= width && croppedHeight <= height) {
+            return croppedBitmap
         }
-    }
 
-    fun Bitmap.crop(sampledLeft: Int, sampledTop: Int, croppedWidth: Int, croppedHeight: Int): Bitmap? {
-        return try {
-            val croppedBitmap = Bitmap.createBitmap(this, sampledLeft, sampledTop, croppedWidth, croppedHeight)
-            if (this != croppedBitmap) {
-                this.recycle()
-            }
+        val resizedBitmap = this.resize(width, height)
+        croppedBitmap?.recycle()
 
-            croppedBitmap
-        } catch (t: Throwable) {
-            null
-        }
+        return resizedBitmap
     }
 
     fun Bitmap.resize(targetWidth: Int, targetHeight: Int): Bitmap? {
-        return try {
-            val resizedBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
 
-            val scaleX = targetWidth / width.toFloat()
-            val scaleY = targetHeight / height.toFloat()
-            val pivotX = 0f
-            val pivotY = 0f
+        val resizedBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
 
-            val scaleMatrix = Matrix()
-            scaleMatrix.setScale(scaleX, scaleY, pivotX, pivotY)
+        val scaleX = targetWidth / width.toFloat()
+        val scaleY = targetHeight / height.toFloat()
+        val pivotX = 0f
+        val pivotY = 0f
 
-            val canvas = Canvas(resizedBitmap)
-            canvas.matrix = scaleMatrix
-            canvas.drawBitmap(this, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
+        val scaleMatrix = Matrix()
+        scaleMatrix.setScale(scaleX, scaleY, pivotX, pivotY)
 
-            this.recycle()
+        val canvas = Canvas(resizedBitmap)
+        canvas.matrix = scaleMatrix
+        canvas.drawBitmap(this, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
 
-            resizedBitmap
-        } catch (ex: Exception) {
-            Timber.e(ex, "Could not resize bitmap")
-            null
-        }
+        this.recycle()
+
+        return resizedBitmap
     }
 }

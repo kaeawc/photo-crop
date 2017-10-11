@@ -6,6 +6,7 @@ import android.os.AsyncTask
 import android.view.View
 import java.lang.ref.WeakReference
 import io.kaeawc.photocrop.crop.BitmapExtensions.cropAndResize
+import timber.log.Timber
 
 abstract class CropBitmapTask<T>(
         context: Context,
@@ -18,14 +19,17 @@ abstract class CropBitmapTask<T>(
         val actualTop: Int,
         val widthSpec: Int,
         val heightSpec: Int,
-        val callback: CropView.BitmapCallback) : AsyncTask<Void, Void, Bitmap>() {
+        val callback: CropView.CropBitmapListener) : AsyncTask<Void, Void, Bitmap?>() {
 
     var context: WeakReference<Context>? = WeakReference(context)
+    private var error: Exception? = null
 
     override fun doInBackground(vararg params: Void): Bitmap? {
         val context = context?.get() ?: return null
         val actualWidth = actualRight - actualLeft
+        Timber.i("actualWidth: $actualWidth")
         val actualHeight = actualBottom - actualTop
+        Timber.i("actualHeight: $actualHeight")
         var actualRatio = actualWidth.toFloat() / actualHeight.toFloat()
 
         if (actualRatio < mMinimumRatio) {
@@ -103,12 +107,22 @@ abstract class CropBitmapTask<T>(
             }
         }
 
-        val rawBitmap = getBitmap(context, resource, targetWidth, targetHeight) ?: return null
-        return rawBitmap.cropAndResize(actualLeft, actualTop, actualRight, actualBottom, targetWidth, targetHeight) ?: return null
+        return try {
+            Timber.i("getBitmap actualWidth $actualWidth actualHeight $actualHeight")
+            val rawBitmap = getBitmap(context, resource, actualWidth, actualHeight) ?: return null
+            Timber.i("cropAndResize")
+            rawBitmap.cropAndResize(actualLeft, actualTop, actualRight, actualBottom, targetWidth, targetHeight)
+        } catch (ex: Exception) {
+            error = ex
+            null
+        }
     }
 
-    override fun onPostExecute(bitmap: Bitmap) {
-        callback.onBitmapReady(bitmap)
+    override fun onPostExecute(bitmap: Bitmap?) {
+        when (bitmap) {
+            null -> callback.onError(error ?: Exception("Unexpected processing error"))
+            else -> callback.onBitmapReady(bitmap)
+        }
     }
 
     abstract fun getBitmap(context: Context, resource: T, targetWidth: Int, targetHeight: Int): Bitmap?

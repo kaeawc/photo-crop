@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import timber.log.Timber
 
 class CropDrawableTask(
         context: Context,
@@ -16,7 +17,7 @@ class CropDrawableTask(
         actualTop: Int,
         widthSpec: Int,
         heightSpec: Int,
-        callback: CropView.BitmapCallback) : CropBitmapTask<Drawable>(
+        callback: CropView.CropBitmapListener) : CropBitmapTask<Drawable>(
         context,
         drawable,
         mMinimumRatio,
@@ -29,6 +30,9 @@ class CropDrawableTask(
         heightSpec,
         callback) {
 
-    override fun getBitmap(context: Context, resource: Drawable, targetWidth: Int, targetHeight: Int): Bitmap? =
-            (resource as? BitmapDrawable)?.bitmap
+    override fun getBitmap(context: Context, resource: Drawable, targetWidth: Int, targetHeight: Int): Bitmap? {
+        Timber.i("get bitmap for drawable")
+        return (resource as? BitmapDrawable)?.bitmap
+    }
+
 }

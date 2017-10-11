@@ -8,7 +8,6 @@ import io.kaeawc.photocrop.R
 import io.kaeawc.photocrop.crop.CropActivity
 import io.kaeawc.photocrop.db.Photo
 import kotlinx.android.synthetic.main.activity_main.*
-import timber.log.Timber
 
 class MainActivity : AppCompatActivity(), MainPresenter.View, PhotoViewHolder.PhotoView {
 
@@ -42,7 +41,6 @@ class MainActivity : AppCompatActivity(), MainPresenter.View, PhotoViewHolder.Ph
     }
 
     override fun onPhotoTapped(photo: Photo) {
-        Timber.i("onPhotoTapped $photo")
         val intent = Intent(baseContext, CropActivity::class.java)
         intent.putExtra(CropActivity.URL, photo.url)
         intent.putExtra(CropActivity.WIDTH, photo.width)

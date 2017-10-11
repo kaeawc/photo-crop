@@ -26,8 +26,8 @@ class CropView : View, Target<Drawable> {
 
     companion object {
 
-        const val DEFAULT_MINIMUM_RATIO = 0.5f
-        const val DEFAULT_MAXIMUM_RATIO = 1.91f
+        const val DEFAULT_MINIMUM_RATIO = 5f / 8f
+        const val DEFAULT_MAXIMUM_RATIO = 1.9f
         const val DEFAULT_RATIO = 1f
 
         private const val MAXIMUM_OVER_SCROLL = 144f
@@ -91,31 +91,38 @@ class CropView : View, Target<Drawable> {
         get() {
             val drawableSizeRatio = imageSizeRatio
             val imageSizeRatioIsValid = isImageSizeRatioValid(drawableSizeRatio)
+            val height = mHeight.toFloat()
+            val width = mWidth.toFloat()
+            val rawWidth = mImageRawWidth.toFloat()
+            val rawHeight = mImageRawHeight.toFloat()
 
             return if (imageSizeRatioIsValid) {
-                val widthRatio = mImageRawWidth / mImageRawHeight.toFloat()
-                val heightRatio = mImageRawHeight / mImageRawWidth.toFloat()
-                val drawableIsWiderThanView = widthRatio > heightRatio
+                val widthOverHeight = rawWidth / rawHeight
+                val heightOverWidth = rawHeight / rawWidth
+                val drawableIsWiderThanView = widthOverHeight > heightOverWidth
+
+                val heightRatio = height / rawHeight
+                val widthRatio = width / rawWidth
 
                 when {
-                    drawableIsWiderThanView -> mHeight.toFloat() / mImageRawHeight.toFloat()
-                    else -> mWidth.toFloat() / mImageRawWidth.toFloat()
+                    drawableIsWiderThanView -> heightRatio
+                    else -> widthRatio
                 }
-            } else if (mImageRawWidth < mWidth || mImageRawHeight < mHeight) {
+            } else if (rawWidth < width || rawHeight < height) {
                 if (drawableSizeRatio < mMaximumRatio) {
-                    getBoundsForWidthAndRatio(mImageRawWidth.toFloat(), mMinimumRatio, mHelperRect)
-                    mHelperRect.height() / mHeight.toFloat()
+                    getBoundsForWidthAndRatio(rawWidth, mMinimumRatio, mHelperRect)
+                    mHelperRect.height() / height
                 } else {
-                    getBoundsForHeightAndRatio(mImageRawHeight.toFloat(), mMaximumRatio, mHelperRect)
-                    mHelperRect.width() / mWidth.toFloat()
+                    getBoundsForHeightAndRatio(rawHeight, mMaximumRatio, mHelperRect)
+                    mHelperRect.width() / width
                 }
             } else {
                 if (drawableSizeRatio < mMinimumRatio) {
-                    getBoundsForHeightAndRatio(mHeight.toFloat(), mMinimumRatio, mHelperRect)
-                    mHelperRect.width() / mImageRawWidth
+                    getBoundsForHeightAndRatio(height, mMinimumRatio, mHelperRect)
+                    mHelperRect.width() / rawWidth
                 } else {
-                    getBoundsForWidthAndRatio(mWidth.toFloat(), mMaximumRatio, mHelperRect)
-                    mHelperRect.height() / mImageRawHeight
+                    getBoundsForWidthAndRatio(width, mMaximumRatio, mHelperRect)
+                    mHelperRect.height() / rawHeight
                 }
             }
         }
@@ -125,28 +132,6 @@ class CropView : View, Target<Drawable> {
 
     private val displayDrawableHeight: Float
         get() = mDrawableScale * mImageRawHeight
-
-    private val mOnDoubleTapListener = object : GestureDetector.OnDoubleTapListener {
-        override fun onDoubleTap(e: MotionEvent?): Boolean {
-            if (mDrawableScale >= maximumAllowedScale * 0.9f) {
-                mScaleFocusX = 0f
-                mScaleFocusY = 0f
-                mDrawableScale = minimumAllowedScale
-            } else {
-                mDrawableScale = Math.min(mDrawableScale * 2, maximumAllowedScale)
-                mScaleFocusX = e?.rawX ?: 0f
-                mScaleFocusY = e?.rawY ?: 0f
-            }
-            setScaleKeepingFocus(mDrawableScale, mScaleFocusX, mScaleFocusY)
-
-
-            return true
-        }
-
-        override fun onDoubleTapEvent(e: MotionEvent?): Boolean = true
-
-        override fun onSingleTapConfirmed(e: MotionEvent?): Boolean = true
-    }
 
     private val mOnGestureListener = object : GestureDetector.OnGestureListener {
 
@@ -226,8 +211,9 @@ class CropView : View, Target<Drawable> {
         invalidate()
     }
 
-    interface BitmapCallback {
+    interface CropBitmapListener {
         fun onBitmapReady(bitmap: Bitmap)
+        fun onError(ex: Exception?)
     }
 
     constructor(context: Context) : super(context) {
@@ -250,7 +236,6 @@ class CropView : View, Target<Drawable> {
 
     private fun initialize(context: Context, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) {
         mGestureDetector = GestureDetector(context, mOnGestureListener)
-        mGestureDetector?.setOnDoubleTapListener(mOnDoubleTapListener)
         mScaleGestureDetector = ScaleGestureDetector(context, mOnScaleGestureListener)
 
         mMaximumOverScroll = resources.displayMetrics.density * MAXIMUM_OVER_SCROLL
@@ -264,7 +249,6 @@ class CropView : View, Target<Drawable> {
         mGridDrawable.callback = mGridCallback
     }
 
-    @Suppress("UNUSED")
     fun setRatios(defaultRatio: Float, minimumRatio: Float, maximumRatio: Float) {
         mDefaultRatio = defaultRatio
         mMinimumRatio = minimumRatio
@@ -281,18 +265,35 @@ class CropView : View, Target<Drawable> {
         requestLayout()
     }
 
-    @Suppress("UNUSED")
     fun setImageUri(uri: Uri) {
         cancelMakingDrawableProcessIfExists()
-
+        mImageRawWidth = 0
+        mImageRawHeight = 0
         mImageUri = uri
         mDrawable = null
-
         requestLayout()
         invalidate()
+
+        scaleDrawableToFitWithinViewWithValidRatio()
+
+        placeDrawableInTheCenter()
+
+        updateGrid()
     }
 
-    fun crop(widthSpec: Int, heightSpec: Int, callback: BitmapCallback) {
+    fun cropSquare(callback: CropBitmapListener) {
+        val width = mWidth
+        Timber.i("width: $width")
+        val scale = mDrawableScale
+        Timber.i("scale: $scale")
+        val visibleSize = (width / scale).toInt()
+        Timber.i("visibleSize: $visibleSize")
+        val size = View.MeasureSpec.makeMeasureSpec(visibleSize, View.MeasureSpec.EXACTLY)
+        Timber.i("cropSquare to size $visibleSize")
+        crop(size, size, callback)
+    }
+
+    fun crop(widthSpec: Int, heightSpec: Int, callback: CropBitmapListener) {
         val uri = mImageUri
         val drawable = mDrawable
         if (uri == null && drawable == null) {
@@ -314,10 +315,13 @@ class CropView : View, Target<Drawable> {
         val rightRatio = gridBounds.right / mHelperRect.width()
         val bottomRatio = gridBounds.bottom / mHelperRect.height()
 
+        val sampledRight = (rightRatio * mImageRawWidth).toInt()
+        val sampledBottom = (bottomRatio * mImageRawHeight).toInt()
+
         val actualLeft = Math.max(0, (leftRatio * mImageRawWidth).toInt())
         val actualTop = Math.max(0, (topRatio * mImageRawHeight).toInt())
-        val actualRight = Math.min(mImageRawWidth, (rightRatio * mImageRawWidth).toInt())
-        val actualBottom = Math.min(mImageRawHeight, (bottomRatio * mImageRawHeight).toInt())
+        val actualRight = Math.min(mImageRawWidth, sampledRight)
+        val actualBottom = Math.min(mImageRawHeight, sampledBottom)
 
         val context = context
 
@@ -480,9 +484,7 @@ class CropView : View, Target<Drawable> {
         invalidate()
     }
 
-    private fun isImageSizeRatioValid(imageSizeRatio: Float): Boolean {
-        return imageSizeRatio in mMinimumRatio..mMaximumRatio
-    }
+    private fun isImageSizeRatioValid(imageSizeRatio: Float): Boolean = imageSizeRatio in mMinimumRatio..mMaximumRatio
 
     private fun scaleDrawableToFitWithinViewWithValidRatio() {
         val scale = drawableScaleToFitWithValidRatio
@@ -720,15 +722,25 @@ class CropView : View, Target<Drawable> {
     }
 
     override fun onResourceReady(resource: Drawable?, transition: Transition<in Drawable>?) {
-        cancelMakingDrawableProcessIfExists()
+        setDrawable(resource)
+    }
 
+    fun setDrawable(resource: Drawable?) {
+        Timber.i("setDrawable")
+        cancelMakingDrawableProcessIfExists()
+//        mImageRawWidth = resource?.intrinsicWidth ?: 0
+//        mImageRawHeight = resource?.intrinsicHeight ?: 0
+//        mWidth = mImageRawWidth
+//        mHeight = mImageRawHeight
         setRatios(DEFAULT_RATIO, DEFAULT_MINIMUM_RATIO, DEFAULT_MAXIMUM_RATIO)
         setDrawableScale(1f)
         mImageUri = null
         mDrawable = resource
-
         requestLayout()
         invalidate()
+        scaleDrawableToFitWithinViewWithValidRatio()
+        placeDrawableInTheCenter()
+        updateGrid()
     }
 
     override fun onLoadStarted(placeholder: Drawable?) {

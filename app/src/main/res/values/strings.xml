@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">PhotoCrop</string>
     <string name="crop">Crop</string>
+    <string name="change_photo">Change Photo</string>
+    <string name="choose_photo_title">Choose Photo</string>
 </resources>

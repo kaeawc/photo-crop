@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import io.kaeawc.photocrop.crop.UriExtensions.getBitmap
+import timber.log.Timber
 
 class CropImageUriTask(
         context: Context,
@@ -16,7 +17,7 @@ class CropImageUriTask(
         actualTop: Int,
         widthSpec: Int,
         heightSpec: Int,
-        callback: CropView.BitmapCallback) : CropBitmapTask<Uri>(
+        callback: CropView.CropBitmapListener) : CropBitmapTask<Uri>(
         context,
         uri,
         mMinimumRatio,
@@ -29,6 +30,8 @@ class CropImageUriTask(
         heightSpec,
         callback) {
 
-    override fun getBitmap(context: Context, resource: Uri, targetWidth: Int, targetHeight: Int): Bitmap? =
-            resource.getBitmap(context, targetWidth, targetHeight)
+    override fun getBitmap(context: Context, resource: Uri, targetWidth: Int, targetHeight: Int): Bitmap? {
+        Timber.i("get bitmap for uri at target width and height $targetWidth, $targetHeight")
+        return resource.getBitmap(context, targetWidth, targetHeight)
+    }
 }
