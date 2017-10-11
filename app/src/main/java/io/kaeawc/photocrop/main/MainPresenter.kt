@@ -14,7 +14,7 @@ open class MainPresenter {
     }
 
     open fun onResume() {
-        weakView?.get()?.showPhotos(interactor.getPhotos())
+        weakView?.get()?.showPhotos(interactor.getNormalPhotos())
     }
 
     open fun onPause() {

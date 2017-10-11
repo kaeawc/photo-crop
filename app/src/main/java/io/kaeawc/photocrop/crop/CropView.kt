@@ -20,8 +20,21 @@ import com.bumptech.glide.request.Request
 import com.bumptech.glide.request.target.SizeReadyCallback
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
+import timber.log.Timber
 
 class CropView : View, Target<Drawable> {
+
+    companion object {
+
+        const val DEFAULT_MINIMUM_RATIO = 0.5f
+        const val DEFAULT_MAXIMUM_RATIO = 1.91f
+        const val DEFAULT_RATIO = 1f
+
+        private const val MAXIMUM_OVER_SCROLL = 144f
+        private const val MAXIMUM_OVER_SCALE = 0.7f
+
+        private const val SET_BACK_DURATION: Long = 400
+    }
 
     private var mMinimumRatio = DEFAULT_MINIMUM_RATIO
     private var mMaximumRatio = DEFAULT_MAXIMUM_RATIO
@@ -29,6 +42,7 @@ class CropView : View, Target<Drawable> {
 
     private var mImageUri: Uri? = null
     private var mImageRawWidth: Int = 0
+
     private var mImageRawHeight: Int = 0
 
     private var mMakeDrawableTask: MakeSuitableTask? = null
@@ -40,19 +54,19 @@ class CropView : View, Target<Drawable> {
 
     private var mDrawable: Drawable? = null
 
-    private var mDrawableScale: Float = 0.toFloat()
-    private var mScaleFocusX: Float = 0.toFloat()
-    private var mScaleFocusY: Float = 0.toFloat()
+    private var mDrawableScale: Float = 0f
+    private var mScaleFocusX: Float = 0f
+    private var mScaleFocusY: Float = 0f
 
-    private var mDisplayDrawableLeft: Float = 0.toFloat()
-    private var mDisplayDrawableTop: Float = 0.toFloat()
+    private var mDisplayDrawableLeft: Float = 0f
+    private var mDisplayDrawableTop: Float = 0f
 
     private val mHelperRect = RectF()
 
     private var mGestureDetector: GestureDetector? = null
     private var mScaleGestureDetector: ScaleGestureDetector? = null
 
-    private var mMaximumOverScroll: Float = 0.toFloat()
+    private var mMaximumOverScroll: Float = 0f
 
     private var mAnimator: ValueAnimator? = null
 
@@ -79,15 +93,13 @@ class CropView : View, Target<Drawable> {
             val imageSizeRatioIsValid = isImageSizeRatioValid(drawableSizeRatio)
 
             return if (imageSizeRatioIsValid) {
-                val viewRatio = mWidth.toFloat() / mHeight.toFloat()
-                val drawableRatio = mImageRawWidth.toFloat() / mImageRawHeight.toFloat()
+                val widthRatio = mImageRawWidth / mImageRawHeight.toFloat()
+                val heightRatio = mImageRawHeight / mImageRawWidth.toFloat()
+                val drawableIsWiderThanView = widthRatio > heightRatio
 
-                val drawableIsWiderThanView = drawableRatio > viewRatio
-
-                if (drawableIsWiderThanView) {
-                    mWidth.toFloat() / mImageRawWidth.toFloat()
-                } else {
-                    mHeight.toFloat() / mImageRawHeight.toFloat()
+                when {
+                    drawableIsWiderThanView -> mHeight.toFloat() / mImageRawHeight.toFloat()
+                    else -> mWidth.toFloat() / mImageRawWidth.toFloat()
                 }
             } else if (mImageRawWidth < mWidth || mImageRawHeight < mHeight) {
                 if (drawableSizeRatio < mMaximumRatio) {
@@ -342,7 +354,6 @@ class CropView : View, Target<Drawable> {
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        //Timber.i("onLayout changed $changed, left $left, top $top, right $right, bottom $bottom")
         mWidth = right - left
         mHeight = bottom - top
 
@@ -445,7 +456,9 @@ class CropView : View, Target<Drawable> {
         invalidate()
     }
 
-    private fun isImageSizeRatioValid(imageSizeRatio: Float): Boolean = imageSizeRatio in mMinimumRatio..mMaximumRatio
+    private fun isImageSizeRatioValid(imageSizeRatio: Float): Boolean {
+        return imageSizeRatio in mMinimumRatio..mMaximumRatio
+    }
 
     private fun scaleDrawableToFitWithinViewWithValidRatio() {
         val scale = drawableScaleToFitWithValidRatio
@@ -685,6 +698,8 @@ class CropView : View, Target<Drawable> {
     override fun onResourceReady(resource: Drawable?, transition: Transition<in Drawable>?) {
         cancelMakingDrawableProcessIfExists()
 
+        setRatios(DEFAULT_RATIO, DEFAULT_MINIMUM_RATIO, DEFAULT_MAXIMUM_RATIO)
+        setDrawableScale(1f)
         mImageUri = null
         mDrawable = resource
 
@@ -699,17 +714,4 @@ class CropView : View, Target<Drawable> {
     override fun onDestroy() {
         // TODO
     }
-
-    companion object {
-
-        val DEFAULT_MINIMUM_RATIO = 4f / 5f
-        val DEFAULT_MAXIMUM_RATIO = 1.91f
-        val DEFAULT_RATIO = 1f
-
-        private val MAXIMUM_OVER_SCROLL = 144f
-        private val MAXIMUM_OVER_SCALE = 0.7f
-
-        private val SET_BACK_DURATION: Long = 400
-    }
-
 }
