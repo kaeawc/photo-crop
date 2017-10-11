@@ -126,6 +126,28 @@ class CropView : View, Target<Drawable> {
     private val displayDrawableHeight: Float
         get() = mDrawableScale * mImageRawHeight
 
+    private val mOnDoubleTapListener = object : GestureDetector.OnDoubleTapListener {
+        override fun onDoubleTap(e: MotionEvent?): Boolean {
+            if (mDrawableScale >= maximumAllowedScale * 0.9f) {
+                mScaleFocusX = 0f
+                mScaleFocusY = 0f
+                mDrawableScale = minimumAllowedScale
+            } else {
+                mDrawableScale = Math.min(mDrawableScale * 2, maximumAllowedScale)
+                mScaleFocusX = e?.rawX ?: 0f
+                mScaleFocusY = e?.rawY ?: 0f
+            }
+            setScaleKeepingFocus(mDrawableScale, mScaleFocusX, mScaleFocusY)
+
+
+            return true
+        }
+
+        override fun onDoubleTapEvent(e: MotionEvent?): Boolean = true
+
+        override fun onSingleTapConfirmed(e: MotionEvent?): Boolean = true
+    }
+
     private val mOnGestureListener = object : GestureDetector.OnGestureListener {
 
         override fun onDown(motionEvent: MotionEvent): Boolean = true
@@ -146,6 +168,7 @@ class CropView : View, Target<Drawable> {
         }
 
         override fun onLongPress(motionEvent: MotionEvent) {}
+
 
         override fun onFling(motionEvent: MotionEvent, motionEvent1: MotionEvent, v: Float, v1: Float): Boolean = false
 
@@ -227,6 +250,7 @@ class CropView : View, Target<Drawable> {
 
     private fun initialize(context: Context, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) {
         mGestureDetector = GestureDetector(context, mOnGestureListener)
+        mGestureDetector?.setOnDoubleTapListener(mOnDoubleTapListener)
         mScaleGestureDetector = ScaleGestureDetector(context, mOnScaleGestureListener)
 
         mMaximumOverScroll = resources.displayMetrics.density * MAXIMUM_OVER_SCROLL
