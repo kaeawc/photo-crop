@@ -1,15 +1,14 @@
 package io.kaeawc.photocrop.crop
 
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Build
 import android.util.AttributeSet
 import android.view.GestureDetector
@@ -21,7 +20,6 @@ import com.bumptech.glide.request.Request
 import com.bumptech.glide.request.target.SizeReadyCallback
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
-import timber.log.Timber
 
 class CropView : View, Target<Drawable> {
 
@@ -33,7 +31,7 @@ class CropView : View, Target<Drawable> {
     private var mImageRawWidth: Int = 0
     private var mImageRawHeight: Int = 0
 
-    private var mMakeDrawableTask: MakeDrawableFromUriTask? = null
+    private var mMakeDrawableTask: MakeSuitableTask? = null
 
     private var mWidth: Int = 0
     private var mHeight: Int = 0
@@ -118,44 +116,26 @@ class CropView : View, Target<Drawable> {
 
     private val mOnGestureListener = object : GestureDetector.OnGestureListener {
 
-        override fun onDown(motionEvent: MotionEvent): Boolean {
-            return true
-        }
+        override fun onDown(motionEvent: MotionEvent): Boolean = true
 
         override fun onShowPress(motionEvent: MotionEvent) {}
 
-        override fun onSingleTapUp(motionEvent: MotionEvent): Boolean {
-            return false
-        }
+        override fun onSingleTapUp(motionEvent: MotionEvent): Boolean = false
 
         override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
-            var distanceX = distanceX
-            var distanceY = distanceY
-            distanceX = -distanceX
-            distanceY = -distanceY
-
             getDisplayDrawableBounds(mHelperRect)
-
             val overScrollX = measureOverScrollX(mHelperRect)
             val overScrollY = measureOverScrollY(mHelperRect)
-
-            distanceX = applyOverScrollFix(distanceX, overScrollX)
-            distanceY = applyOverScrollFix(distanceY, overScrollY)
-
-            mDisplayDrawableLeft += distanceX
-            mDisplayDrawableTop += distanceY
-
+            mDisplayDrawableLeft += applyOverScrollFix(-distanceX, overScrollX)
+            mDisplayDrawableTop += applyOverScrollFix(-distanceY, overScrollY)
             updateGrid()
             invalidate()
-
             return true
         }
 
         override fun onLongPress(motionEvent: MotionEvent) {}
 
-        override fun onFling(motionEvent: MotionEvent, motionEvent1: MotionEvent, v: Float, v1: Float): Boolean {
-            return false
-        }
+        override fun onFling(motionEvent: MotionEvent, motionEvent1: MotionEvent, v: Float, v1: Float): Boolean = false
 
     }
 
@@ -173,9 +153,7 @@ class CropView : View, Target<Drawable> {
             return true
         }
 
-        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-            return true
-        }
+        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean = true
 
         override fun onScaleEnd(detector: ScaleGestureDetector) {}
 
@@ -214,9 +192,7 @@ class CropView : View, Target<Drawable> {
     }
 
     interface BitmapCallback {
-
         fun onBitmapReady(bitmap: Bitmap)
-
     }
 
     constructor(context: Context) : super(context) {
@@ -231,6 +207,7 @@ class CropView : View, Target<Drawable> {
         initialize(context, attrs, defStyleAttr, 0)
     }
 
+    @Suppress("UNUSED")
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int, defStyleRes: Int) : super(context, attrs, defStyleAttr, defStyleRes) {
         initialize(context, attrs, defStyleAttr, defStyleRes)
@@ -251,6 +228,7 @@ class CropView : View, Target<Drawable> {
         mGridDrawable.callback = mGridCallback
     }
 
+    @Suppress("UNUSED")
     fun setRatios(defaultRatio: Float, minimumRatio: Float, maximumRatio: Float) {
         mDefaultRatio = defaultRatio
         mMinimumRatio = minimumRatio
@@ -267,6 +245,7 @@ class CropView : View, Target<Drawable> {
         requestLayout()
     }
 
+    @Suppress("UNUSED")
     fun setImageUri(uri: Uri) {
         cancelMakingDrawableProcessIfExists()
 
@@ -278,11 +257,13 @@ class CropView : View, Target<Drawable> {
     }
 
     fun crop(widthSpec: Int, heightSpec: Int, callback: BitmapCallback) {
-        if (mImageUri == null) {
+        val uri = mImageUri
+        val drawable = mDrawable
+        if (uri == null && drawable == null) {
             throw IllegalStateException("Image uri is not set.")
         }
 
-        if (mDrawable == null || mAnimator?.isRunning == true) {
+        if (drawable == null || mAnimator?.isRunning == true) {
             postDelayed({ crop(widthSpec, heightSpec, callback) }, SET_BACK_DURATION / 2)
             return
         }
@@ -304,150 +285,12 @@ class CropView : View, Target<Drawable> {
 
         val context = context
 
-        object : AsyncTask<Void, Void, Bitmap>() {
-
-            override fun doInBackground(vararg params: Void): Bitmap? {
-                val actualWidth = actualRight - actualLeft
-                val actualHeight = actualBottom - actualTop
-                var actualRatio = actualWidth.toFloat() / actualHeight.toFloat()
-
-                if (actualRatio < mMinimumRatio) {
-                    actualRatio = mMinimumRatio
-                }
-
-                if (actualRatio > mMaximumRatio) {
-                    actualRatio = mMaximumRatio
-                }
-
-                val widthMode = View.MeasureSpec.getMode(widthSpec)
-                val widthSize = View.MeasureSpec.getSize(widthSpec)
-                val heightMode = View.MeasureSpec.getMode(heightSpec)
-                val heightSize = View.MeasureSpec.getSize(heightSpec)
-
-                var targetWidth = actualWidth
-                var targetHeight = actualHeight
-
-                when (widthMode) {
-                    View.MeasureSpec.EXACTLY -> {
-                        targetWidth = widthSize
-
-                        when (heightMode) {
-                            View.MeasureSpec.EXACTLY -> targetHeight = heightSize
-                            View.MeasureSpec.AT_MOST -> targetHeight = Math.min(heightSize, (targetWidth / actualRatio).toInt())
-                            View.MeasureSpec.UNSPECIFIED -> targetHeight = (targetWidth / actualRatio).toInt()
-                        }
-                    }
-                    View.MeasureSpec.AT_MOST -> when (heightMode) {
-                        View.MeasureSpec.EXACTLY -> {
-                            targetHeight = heightSize
-                            targetWidth = Math.min(widthSize, (targetHeight * actualRatio).toInt())
-                        }
-                        View.MeasureSpec.AT_MOST -> if (actualWidth <= widthSize && actualHeight <= heightSize) {
-                            targetWidth = actualWidth
-                            targetHeight = actualHeight
-                        } else {
-                            val specRatio = widthSize.toFloat() / heightSize.toFloat()
-
-                            if (specRatio == actualRatio) {
-                                targetWidth = widthSize
-                                targetHeight = heightSize
-                            } else if (specRatio > actualRatio) {
-                                targetHeight = heightSize
-                                targetWidth = (targetHeight * actualRatio).toInt()
-                            } else {
-                                targetWidth = widthSize
-                                targetHeight = (targetWidth / actualRatio).toInt()
-                            }
-                        }
-                        View.MeasureSpec.UNSPECIFIED -> if (actualWidth <= widthSize) {
-                            targetWidth = actualWidth
-                            targetHeight = actualHeight
-                        } else {
-                            targetWidth = widthSize
-                            targetHeight = (targetWidth / actualRatio).toInt()
-                        }
-                    }
-                    View.MeasureSpec.UNSPECIFIED -> when (heightMode) {
-                        View.MeasureSpec.EXACTLY -> {
-                            targetHeight = heightSize
-                            targetWidth = (targetHeight * actualRatio).toInt()
-                        }
-                        View.MeasureSpec.AT_MOST -> if (actualHeight <= heightSize) {
-                            targetHeight = actualHeight
-                            targetWidth = actualWidth
-                        } else {
-                            targetHeight = heightSize
-                            targetWidth = (targetHeight * actualRatio).toInt()
-                        }
-                        View.MeasureSpec.UNSPECIFIED -> {
-                            targetWidth = actualWidth
-                            targetHeight = actualHeight
-                        }
-                    }
-                }
-
-                return cropImageAndResize(context, actualLeft, actualTop, actualRight, actualBottom, targetWidth, targetHeight)
-            }
-
-            override fun onPostExecute(bitmap: Bitmap) {
-                callback.onBitmapReady(bitmap)
-            }
-
-        }.execute()
-    }
-
-    private fun cropImageAndResize(context: Context, left: Int, top: Int, right: Int, bottom: Int, width: Int, height: Int): Bitmap? {
-        var left = left
-        var top = top
-        var right = right
-        var bottom = bottom
-        val options = BitmapFactory.Options()
-        options.inSampleSize = 1
-
-        val rawArea = (right - left) * (bottom - top)
-        val targetArea = width * height * 4
-
-        var resultArea = rawArea
-
-        while (resultArea > targetArea) {
-            options.inSampleSize *= 2
-            resultArea = rawArea / (options.inSampleSize * options.inSampleSize)
+        val task = when (uri) {
+            null -> CropDrawableTask(context, drawable, mMinimumRatio, mMaximumRatio, actualRight, actualLeft, actualBottom, actualTop, widthSpec, heightSpec, callback)
+            else -> CropImageUriTask(context, uri, mMinimumRatio, mMaximumRatio, actualRight, actualLeft, actualBottom, actualTop, widthSpec, heightSpec, callback)
         }
 
-        if (options.inSampleSize > 1) {
-            options.inSampleSize /= 2
-        }
-
-        try {
-            val rawBitmap = MakeDrawableFromUriTask.getBitmap(context, mImageUri!!, options) ?: return null
-
-            left /= options.inSampleSize
-            top /= options.inSampleSize
-            right /= options.inSampleSize
-            bottom /= options.inSampleSize
-
-            val croppedWidth = right - left
-            val croppedHeight = bottom - top
-
-            val croppedBitmap = Bitmap.createBitmap(rawBitmap, left, top, croppedWidth, croppedHeight)
-
-            if (rawBitmap != croppedBitmap) {
-                rawBitmap.recycle()
-            }
-
-            if (croppedWidth <= width && croppedHeight <= height) {
-                return croppedBitmap
-            }
-
-            val resizedBitmap = MakeDrawableFromUriTask.resizeBitmap(croppedBitmap, width, height)
-
-            croppedBitmap.recycle()
-
-            return resizedBitmap
-        } catch (t: Throwable) {
-            return null
-        }
-
+        task.execute()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -456,56 +299,41 @@ class CropView : View, Target<Drawable> {
         val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
         val heightSize = View.MeasureSpec.getSize(heightMeasureSpec)
 
-        var targetWidth = 1
-        var targetHeight = 1
-
-        when (widthMode) {
+        val (targetWidth, targetHeight) = when (widthMode) {
             View.MeasureSpec.EXACTLY -> {
-                targetWidth = widthSize
-
-                when (heightMode) {
-                    View.MeasureSpec.EXACTLY -> targetHeight = heightSize
-                    View.MeasureSpec.AT_MOST -> targetHeight = Math.min(heightSize, (targetWidth / mDefaultRatio).toInt())
-                    View.MeasureSpec.UNSPECIFIED -> targetHeight = (targetWidth / mDefaultRatio).toInt()
+                val height: Int = when (heightMode) {
+                    View.MeasureSpec.EXACTLY -> heightSize
+                    View.MeasureSpec.AT_MOST -> Math.min(heightSize, (widthSize / mDefaultRatio).toInt())
+                    View.MeasureSpec.UNSPECIFIED -> (widthSize / mDefaultRatio).toInt()
+                    else -> (widthSize / mDefaultRatio).toInt()
                 }
+
+                widthSize to height
             }
             View.MeasureSpec.AT_MOST -> when (heightMode) {
-                View.MeasureSpec.EXACTLY -> {
-                    targetHeight = heightSize
-                    targetWidth = Math.min(widthSize, (targetHeight * mDefaultRatio).toInt())
-                }
+                View.MeasureSpec.EXACTLY -> Math.min(widthSize, (heightSize * mDefaultRatio).toInt()) to heightSize
                 View.MeasureSpec.AT_MOST -> {
                     val specRatio = widthSize.toFloat() / heightSize.toFloat()
-
-                    if (specRatio == mDefaultRatio) {
-                        targetWidth = widthSize
-                        targetHeight = heightSize
-                    } else if (specRatio > mDefaultRatio) {
-                        targetHeight = heightSize
-                        targetWidth = (targetHeight * mDefaultRatio).toInt()
-                    } else {
-                        targetWidth = widthSize
-                        targetHeight = (targetWidth / mDefaultRatio).toInt()
+                    when {
+                        specRatio == mDefaultRatio -> widthSize to heightSize
+                        specRatio > mDefaultRatio -> (heightSize * mDefaultRatio).toInt() to heightSize
+                        else -> widthSize to (widthSize / mDefaultRatio).toInt()
                     }
                 }
-                View.MeasureSpec.UNSPECIFIED -> {
-                    targetWidth = widthSize
-                    targetHeight = (targetWidth / mDefaultRatio).toInt()
-                }
+                View.MeasureSpec.UNSPECIFIED -> widthSize to (widthSize / mDefaultRatio).toInt()
+                else -> widthSize to (widthSize / mDefaultRatio).toInt()
             }
             View.MeasureSpec.UNSPECIFIED -> when (heightMode) {
-                View.MeasureSpec.EXACTLY -> {
-                    targetHeight = heightSize
-                    targetWidth = (targetHeight * mDefaultRatio).toInt()
-                }
-                View.MeasureSpec.AT_MOST -> {
-                    targetHeight = heightSize
-                    targetWidth = (targetHeight * mDefaultRatio).toInt()
-                }
-                View.MeasureSpec.UNSPECIFIED -> {
-                    targetWidth = mMaximumOverScroll.toInt()
-                    targetHeight = mMaximumOverScroll.toInt()
-                }
+                View.MeasureSpec.EXACTLY -> (heightSize * mDefaultRatio).toInt() to heightSize
+                View.MeasureSpec.AT_MOST -> (heightSize * mDefaultRatio).toInt() to heightSize
+                View.MeasureSpec.UNSPECIFIED -> mMaximumOverScroll.toInt() to mMaximumOverScroll.toInt()
+                else -> mMaximumOverScroll.toInt() to mMaximumOverScroll.toInt()
+            }
+            else -> when (heightMode) {
+                View.MeasureSpec.EXACTLY -> (heightSize * mDefaultRatio).toInt() to heightSize
+                View.MeasureSpec.AT_MOST -> (heightSize * mDefaultRatio).toInt() to heightSize
+                View.MeasureSpec.UNSPECIFIED -> mMaximumOverScroll.toInt() to mMaximumOverScroll.toInt()
+                else -> mMaximumOverScroll.toInt() to mMaximumOverScroll.toInt()
             }
         }
 
@@ -577,7 +405,7 @@ class CropView : View, Target<Drawable> {
         val drawable = mDrawable
 
         if (uri != null) {
-            mMakeDrawableTask = object : MakeDrawableFromUriTask(context, uri, mWidth, mHeight) {
+            mMakeDrawableTask = object : MakeSuitableTask(context, uri, mWidth, mHeight) {
 
                 override fun onPostExecute(drawable: Drawable) {
                     mDrawable = drawable
@@ -696,6 +524,7 @@ class CropView : View, Target<Drawable> {
         mGridDrawable.draw(canvas)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (mDrawable == null) {
 
@@ -757,16 +586,13 @@ class CropView : View, Target<Drawable> {
     }
 
     private fun applyOverScrollFix(distance: Float, overScroll: Float): Float {
-        var distance = distance
         if (overScroll * distance <= 0) {
             return distance
         }
 
         val offRatio = Math.abs(overScroll) / mMaximumOverScroll
 
-        distance -= (distance * Math.sqrt(offRatio.toDouble())).toFloat()
-
-        return distance
+        return distance - (distance * Math.sqrt(offRatio.toDouble())).toFloat()
     }
 
     private fun measureOverScale(): Float {
@@ -777,35 +603,32 @@ class CropView : View, Target<Drawable> {
             maximumAllowedScale = minimumAllowedScale
         }
 
-        return if (mDrawableScale < minimumAllowedScale) {
-            mDrawableScale / minimumAllowedScale
-        } else if (mDrawableScale > maximumAllowedScale) {
-            mDrawableScale / maximumAllowedScale
-        } else {
-            1f
+        return when {
+            mDrawableScale < minimumAllowedScale -> mDrawableScale / minimumAllowedScale
+            mDrawableScale > maximumAllowedScale -> mDrawableScale / maximumAllowedScale
+            else -> 1f
         }
     }
 
     private fun applyOverScaleFix(scale: Float, overScale: Float): Float {
-        var scale = scale
-        var overScale = overScale
         if (overScale == 1f) {
             return scale
         }
 
-        if (overScale > 1) {
-            overScale = 1f / overScale
+        val adjustedOverScale = if (overScale > 1) {
+            1f / overScale
+        } else {
+            overScale
         }
 
-        var wentOverScaleRatio = (overScale - MAXIMUM_OVER_SCALE) / (1 - MAXIMUM_OVER_SCALE)
+        val ratio = (adjustedOverScale - MAXIMUM_OVER_SCALE) / (1 - MAXIMUM_OVER_SCALE)
 
-        if (wentOverScaleRatio < 0) {
-            wentOverScaleRatio = 0f
+        val wentOverScaleRatio = when {
+            ratio < 0 -> 0f
+            else -> ratio
         }
 
-        scale *= wentOverScaleRatio + (1 - wentOverScaleRatio) / scale
-
-        return scale
+        return scale * wentOverScaleRatio + (1 - wentOverScaleRatio) / scale
     }
 
     private fun setScaleKeepingFocus(scale: Float, focusX: Float, focusY: Float) {
@@ -837,9 +660,7 @@ class CropView : View, Target<Drawable> {
         cb?.onSizeReady(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
     }
 
-    override fun getRequest(): Request? {
-        return tag as? Request
-    }
+    override fun getRequest(): Request? = tag as? Request
 
     override fun removeCallback(cb: SizeReadyCallback?) {
         // TODO
