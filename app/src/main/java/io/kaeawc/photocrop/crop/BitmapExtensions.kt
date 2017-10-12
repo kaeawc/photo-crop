@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import timber.log.Timber
 
 object BitmapExtensions {
 
@@ -42,19 +41,6 @@ object BitmapExtensions {
         val croppedWidth = sampledRight - sampledLeft
         val croppedHeight = sampledBottom - sampledTop
 
-        Timber.i("rawArea: $rawArea")
-        Timber.i("targetArea: $targetArea")
-        Timber.i("resultArea: $resultArea")
-        Timber.i("options.inSampleSize: ${options.inSampleSize}")
-
-
-        Timber.i("sampledLeft: $sampledLeft")
-        Timber.i("sampledTop: $sampledTop")
-        Timber.i("sampledRight: $sampledRight")
-        Timber.i("sampledBottom: $sampledBottom")
-        Timber.i("croppedWidth: $croppedWidth")
-        Timber.i("croppedHeight: $croppedHeight")
-
         val croppedBitmap = Bitmap.createBitmap(this, sampledLeft, sampledTop, croppedWidth, croppedHeight)
         if (croppedWidth <= width && croppedHeight <= height) {
             return croppedBitmap
@@ -66,7 +52,7 @@ object BitmapExtensions {
         return resizedBitmap
     }
 
-    fun Bitmap.resize(targetWidth: Int, targetHeight: Int): Bitmap? {
+    private fun Bitmap.resize(targetWidth: Int, targetHeight: Int): Bitmap? {
 
         val resizedBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
 

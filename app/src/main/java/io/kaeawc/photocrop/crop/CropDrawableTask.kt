@@ -30,9 +30,7 @@ class CropDrawableTask(
         heightSpec,
         callback) {
 
-    override fun getBitmap(context: Context, resource: Drawable, targetWidth: Int, targetHeight: Int): Bitmap? {
-        Timber.i("get bitmap for drawable")
-        return (resource as? BitmapDrawable)?.bitmap
-    }
+    override fun getBitmap(context: Context, resource: Drawable, targetWidth: Int, targetHeight: Int): Bitmap? =
+            (resource as? BitmapDrawable)?.bitmap
 
 }

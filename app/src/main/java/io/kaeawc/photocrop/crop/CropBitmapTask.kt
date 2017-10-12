@@ -6,20 +6,19 @@ import android.os.AsyncTask
 import android.view.View
 import java.lang.ref.WeakReference
 import io.kaeawc.photocrop.crop.BitmapExtensions.cropAndResize
-import timber.log.Timber
 
 abstract class CropBitmapTask<T>(
         context: Context,
         val resource: T,
-        val mMinimumRatio: Float,
-        val mMaximumRatio: Float,
-        val actualRight: Int,
-        val actualLeft: Int,
-        val actualBottom: Int,
-        val actualTop: Int,
-        val widthSpec: Int,
-        val heightSpec: Int,
-        val callback: CropView.CropBitmapListener) : AsyncTask<Void, Void, Bitmap?>() {
+        private val mMinimumRatio: Float,
+        private val mMaximumRatio: Float,
+        private val actualRight: Int,
+        private val actualLeft: Int,
+        private val actualBottom: Int,
+        private val actualTop: Int,
+        private val widthSpec: Int,
+        private val heightSpec: Int,
+        private val callback: CropView.CropBitmapListener) : AsyncTask<Void, Void, Bitmap?>() {
 
     var context: WeakReference<Context>? = WeakReference(context)
     private var error: Exception? = null
@@ -27,9 +26,7 @@ abstract class CropBitmapTask<T>(
     override fun doInBackground(vararg params: Void): Bitmap? {
         val context = context?.get() ?: return null
         val actualWidth = actualRight - actualLeft
-        Timber.i("actualWidth: $actualWidth")
         val actualHeight = actualBottom - actualTop
-        Timber.i("actualHeight: $actualHeight")
         var actualRatio = actualWidth.toFloat() / actualHeight.toFloat()
 
         if (actualRatio < mMinimumRatio) {
@@ -69,15 +66,19 @@ abstract class CropBitmapTask<T>(
                 } else {
                     val specRatio = widthSize.toFloat() / heightSize.toFloat()
 
-                    if (specRatio == actualRatio) {
-                        targetWidth = widthSize
-                        targetHeight = heightSize
-                    } else if (specRatio > actualRatio) {
-                        targetHeight = heightSize
-                        targetWidth = (targetHeight * actualRatio).toInt()
-                    } else {
-                        targetWidth = widthSize
-                        targetHeight = (targetWidth / actualRatio).toInt()
+                    when {
+                        specRatio == actualRatio -> {
+                            targetWidth = widthSize
+                            targetHeight = heightSize
+                        }
+                        specRatio > actualRatio -> {
+                            targetHeight = heightSize
+                            targetWidth = (targetHeight * actualRatio).toInt()
+                        }
+                        else -> {
+                            targetWidth = widthSize
+                            targetHeight = (targetWidth / actualRatio).toInt()
+                        }
                     }
                 }
                 View.MeasureSpec.UNSPECIFIED -> if (actualWidth <= widthSize) {
@@ -108,9 +109,7 @@ abstract class CropBitmapTask<T>(
         }
 
         return try {
-            Timber.i("getBitmap actualWidth $actualWidth actualHeight $actualHeight")
             val rawBitmap = getBitmap(context, resource, actualWidth, actualHeight) ?: return null
-            Timber.i("cropAndResize")
             rawBitmap.cropAndResize(actualLeft, actualTop, actualRight, actualBottom, targetWidth, targetHeight)
         } catch (ex: Exception) {
             error = ex
