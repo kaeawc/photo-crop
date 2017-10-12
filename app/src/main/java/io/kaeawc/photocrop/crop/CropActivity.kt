@@ -77,7 +77,7 @@ class CropActivity : AppCompatActivity(), CropPresenter.View {
                 val width = bitmap.width
                 val height = bitmap.height
                 Timber.i("Cropped Bitmap Ready width $width height $height")
-                photo_view.setDrawable(bitmap.toDrawable(baseContext))
+                // TODO: Upload to server
             }
         })
     }

@@ -67,9 +67,6 @@ object BitmapExtensions {
         val canvas = Canvas(resizedBitmap)
         canvas.matrix = scaleMatrix
         canvas.drawBitmap(this, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
-
-        this.recycle()
-
         return resizedBitmap
     }
 }
