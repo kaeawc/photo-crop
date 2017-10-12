@@ -20,6 +20,7 @@ import com.bumptech.glide.request.Request
 import com.bumptech.glide.request.target.SizeReadyCallback
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
+import timber.log.Timber
 
 class CropView : View, Target<Drawable> {
 
@@ -425,19 +426,19 @@ class CropView : View, Target<Drawable> {
         val drawable = viewportImage
 
         if (uri != null) {
-            makeDrawableTask = object : MakeSuitableTask(context, uri, displayWidth, displayHeight) {
-
-                override fun onPostExecute(drawable: Drawable) {
+            val listener = object : MakeSuitableTask.SuitableDrawableListener {
+                override fun onSuccess(drawable: Drawable, rawWidth: Int, rawHeight: Int) {
                     viewportImage = drawable
-
                     imageRawWidth = rawWidth
                     imageRawHeight = rawHeight
-
                     onDrawableChanged()
                 }
 
+                override fun onError(ex: Exception?) {
+                    Timber.e(ex, "Could not process image for suitability")
+                }
             }
-
+            makeDrawableTask = MakeSuitableTask(context, uri, displayWidth, displayHeight, listener)
             makeDrawableTask?.execute()
         } else if (drawable != null) {
             imageRawWidth = drawable.intrinsicWidth
