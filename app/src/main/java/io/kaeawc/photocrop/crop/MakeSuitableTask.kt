@@ -15,17 +15,13 @@ open class MakeSuitableTask(
         val uri: Uri,
         val targetWidth: Int,
         val targetHeight: Int,
-        listener: SuitableDrawableListener) : AsyncTask<Void, Void, Drawable>() {
+        val listener: SuitableDrawableListener) : AsyncTask<Void, Void, Drawable>() {
 
     var context: WeakReference<Context>? = WeakReference(context)
 
     private var rawWidth: Int = 0
-        private set
     private var rawHeight: Int = 0
-        private set
     private var error: Exception? = null
-
-    private var weakListener: WeakReference<SuitableDrawableListener>? = WeakReference(listener)
 
     override fun doInBackground(vararg params: Void): Drawable? {
         val options = BitmapFactory.Options()
@@ -51,12 +47,13 @@ open class MakeSuitableTask(
         } catch (e: FileNotFoundException) {
             return null
         }
-
     }
 
     override fun onPostExecute(drawable: Drawable) {
-        val listener = weakListener?.get() ?: return
-        error?.let { listener.onError(it) }.run { listener.onSuccess(drawable, rawWidth, rawHeight) }
+        when (error) {
+            null -> listener.onSuccess(drawable, rawWidth, rawHeight)
+            else -> listener.onError(error)
+        }
     }
 
     interface SuitableDrawableListener {
